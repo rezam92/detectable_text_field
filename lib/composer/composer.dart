@@ -1,5 +1,4 @@
-import 'package:detectable_text_field/detector/detector.dart';
-import 'package:flutter/foundation.dart';
+import 'package:detectable_text_field/detector/detection.dart';
 import 'package:flutter/material.dart';
 
 /// Add composing to hashtag decorated text.
@@ -12,7 +11,6 @@ class Composer {
     required this.composing,
     required this.selection,
     required this.detectedStyle,
-    required this.onDetectionTyped,
   });
 
   final String sourceText;
@@ -20,7 +18,6 @@ class Composer {
   final TextRange composing;
   final int selection;
   final TextStyle detectedStyle;
-  final ValueChanged<String>? onDetectionTyped;
 
   // TODO(Takahashi): Add test code for composing
   TextSpan getComposedTextSpan() {
@@ -82,7 +79,7 @@ class Composer {
         }
       },
     ).toList();
-    return TextSpan(children: span);
+    return TextSpan(children: span, style: detectedStyle);
   }
 
   Detection? typingDetection() {
@@ -96,13 +93,6 @@ class Composer {
       return res.first;
     } else {
       return null;
-    }
-  }
-
-  void callOnDetectionTyped() {
-    final typingRange = typingDetection()?.range;
-    if (typingRange != null) {
-      onDetectionTyped!(typingRange.textInside(sourceText));
     }
   }
 }

@@ -1,9 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import '../functions.dart';
-
+import '../detector/text_pattern_detector.dart';
 
 enum TrimMode {
   Length,
@@ -17,19 +15,17 @@ const String _kLineSeparator = '\u2028';
 ///
 /// [onTap] is called when a tagged text is tapped.
 class DetectableText extends StatefulWidget {
-
   DetectableText({
     required this.text,
     required this.detectionRegExp,
     this.basicStyle,
     this.detectedStyle,
     this.onTap,
-    this.alwaysDetectTap = false,
     this.textAlign = TextAlign.start,
     this.textDirection,
     this.softWrap = true,
     this.overflow = TextOverflow.clip,
-    this.textScaleFactor = 1.0,
+    this.textScaler = TextScaler.noScaling,
     this.maxLines,
     this.locale,
     this.strutStyle,
@@ -44,19 +40,18 @@ class DetectableText extends StatefulWidget {
     this.trimLines = 2,
     this.trimMode = TrimMode.Length,
     this.delimiter = _kEllipsis + ' ',
-    this.callback,
+    this.onExpansionChanged,
   });
 
   final String text;
   final TextStyle? basicStyle;
   final TextStyle? detectedStyle;
   final Function(String)? onTap;
-  final bool alwaysDetectTap;
   final TextAlign textAlign;
   final TextDirection? textDirection;
   final bool softWrap;
   final TextOverflow overflow;
-  final double textScaleFactor;
+  final TextScaler textScaler;
   final int? maxLines;
   final Locale? locale;
   final StrutStyle? strutStyle;
@@ -64,6 +59,7 @@ class DetectableText extends StatefulWidget {
   final TextHeightBehavior? textHeightBehavior;
   final RegExp detectionRegExp;
   final String delimiter;
+
   /// Used on TrimMode.Length
   final int trimLength;
 
@@ -82,7 +78,7 @@ class DetectableText extends StatefulWidget {
   final TextStyle? lessStyle;
 
   ///Called when state change between expanded/compress
-  final Function(bool val)? callback;
+  final Function(bool val)? onExpansionChanged;
 
   final String trimExpandedText;
   final String trimCollapsedText;
@@ -98,14 +94,15 @@ class _DetectableTextState extends State<DetectableText> {
   void _onTapLink() {
     setState(() {
       _readMore = !_readMore;
-      widget.callback?.call(_readMore);
+      widget.onExpansionChanged?.call(_readMore);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final TextStyle style = theme.textTheme.subtitle1!.merge(widget.basicStyle);
+    final TextStyle style =
+        theme.textTheme.titleMedium!.merge(widget.basicStyle);
     final dStyle = widget.detectedStyle ?? style.copyWith(color: Colors.blue);
 
     final _defaultLessStyle = widget.lessStyle ?? style;
@@ -124,8 +121,8 @@ class _DetectableTextState extends State<DetectableText> {
     TextSpan _delimiter = TextSpan(
       text: _readMore
           ? widget.trimCollapsedText.isNotEmpty
-          ? widget.delimiter
-          : ''
+              ? widget.delimiter
+              : ''
           : '',
       style: _defaultDelimiterStyle,
       recognizer: TapGestureRecognizer()..onTap = _onTapLink,
@@ -137,7 +134,7 @@ class _DetectableTextState extends State<DetectableText> {
         final double maxWidth = constraints.maxWidth;
 
         // Create a TextSpan with data
-        final text = getDetectedTextSpan(
+        final text = TextPatternDetector.getDetectedTextSpan(
           decoratedStyle: dStyle,
           basicStyle: style,
           onTap: widget.onTap,
@@ -150,7 +147,7 @@ class _DetectableTextState extends State<DetectableText> {
           text: link,
           textAlign: widget.textAlign,
           textDirection: textDirection,
-          textScaleFactor: widget.textScaleFactor,
+          textScaler: widget.textScaler,
           maxLines: widget.trimLines,
           ellipsis: overflow == TextOverflow.ellipsis ? widget.delimiter : null,
           locale: locale,
@@ -193,27 +190,19 @@ class _DetectableTextState extends State<DetectableText> {
         switch (widget.trimMode) {
           case TrimMode.Length:
             if (widget.trimLength < widget.text.length) {
-              // textSpan = TextSpan(
-              //   style: style,
-              //   text: _readMore
-              //       ? widget.text.substring(0, widget.trimLength)
-              //       : widget.text,
-              //   children: <TextSpan>[_delimiter, link],
-              // );
-
-              textSpan =  getDetectedTextSpanWithExtraChild(
+              textSpan = TextPatternDetector.getDetectedTextSpanWithExtraChild(
                 decoratedStyle: dStyle,
                 basicStyle: style,
                 onTap: widget.onTap,
                 source: _readMore
                     ? widget.text.substring(0, widget.trimLength) +
-                    (linkLongerThanLine ? _kLineSeparator : '')
+                        (linkLongerThanLine ? _kLineSeparator : '')
                     : widget.text,
                 detectionRegExp: widget.detectionRegExp,
                 children: <TextSpan>[_delimiter, link],
               );
             } else {
-              textSpan =  getDetectedTextSpan(
+              textSpan = TextPatternDetector.getDetectedTextSpan(
                 decoratedStyle: dStyle,
                 basicStyle: style,
                 onTap: widget.onTap,
@@ -224,28 +213,19 @@ class _DetectableTextState extends State<DetectableText> {
             break;
           case TrimMode.Line:
             if (textPainter.didExceedMaxLines) {
-              // textSpan = TextSpan(
-              //   style: style,
-              //   text: _readMore
-              //       ? widget.text.substring(0, endIndex) +
-              //       (linkLongerThanLine ? _kLineSeparator : '')
-              //       : widget.text,
-              //   children: <TextSpan>[_delimiter, link],
-              // );
-
-              textSpan =  getDetectedTextSpanWithExtraChild(
+              textSpan = TextPatternDetector.getDetectedTextSpanWithExtraChild(
                 decoratedStyle: dStyle,
                 basicStyle: style,
                 onTap: widget.onTap,
                 source: _readMore
                     ? widget.text.substring(0, endIndex) +
-                    (linkLongerThanLine ? _kLineSeparator : '')
+                        (linkLongerThanLine ? _kLineSeparator : '')
                     : widget.text,
                 detectionRegExp: widget.detectionRegExp,
                 children: <TextSpan>[_delimiter, link],
               );
             } else {
-              textSpan =  getDetectedTextSpan(
+              textSpan = TextPatternDetector.getDetectedTextSpan(
                 decoratedStyle: dStyle,
                 basicStyle: style,
                 onTap: widget.onTap,
@@ -260,24 +240,13 @@ class _DetectableTextState extends State<DetectableText> {
                 'TrimMode type: ${widget.trimMode} is not supported');
         }
 
-        // return RichText(
-        //   textAlign: textAlign,
-        //   textDirection: textDirection,
-        //   softWrap: true,
-        //   //softWrap,
-        //   overflow: TextOverflow.clip,
-        //   //overflow,
-        //   textScaleFactor: textScaleFactor,
-        //   text: textSpan,
-        // );
-
         return RichText(
           text: textSpan,
           textAlign: widget.textAlign,
           textDirection: textDirection,
           softWrap: widget.softWrap,
           overflow: widget.overflow,
-          textScaleFactor: widget.textScaleFactor,
+          textScaler: widget.textScaler,
           maxLines: widget.maxLines,
           locale: widget.locale,
           strutStyle: widget.strutStyle,
@@ -288,25 +257,5 @@ class _DetectableTextState extends State<DetectableText> {
     );
 
     return result;
-
-    // return RichText(
-    //   text: getDetectedTextSpan(
-    //     decoratedStyle: dStyle,
-    //     basicStyle: style,
-    //     onTap: widget.onTap,
-    //     source: widget.text,
-    //     detectionRegExp: widget.detectionRegExp,
-    //   ),
-    //   textAlign: widget.textAlign,
-    //   textDirection: widget.textDirection,
-    //   softWrap: widget.softWrap,
-    //   overflow: widget.overflow,
-    //   textScaleFactor: widget.textScaleFactor,
-    //   maxLines: widget.maxLines,
-    //   locale: widget.locale,
-    //   strutStyle: widget.strutStyle,
-    //   textWidthBasis: widget.textWidthBasis,
-    //   textHeightBehavior: widget.textHeightBehavior,
-    // );
   }
 }

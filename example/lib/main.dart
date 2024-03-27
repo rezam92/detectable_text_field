@@ -1,96 +1,66 @@
 import 'package:detectable_text_field/detector/sample_regular_expressions.dart';
-import 'package:detectable_text_field/widgets/detectable_text.dart';
+import 'package:detectable_text_field/widgets/detectable_text_editing_controller.dart';
 import 'package:detectable_text_field/widgets/detectable_text_field.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      debugShowCheckedModeBanner: false,
-      home: MyHomePage(),
+      home: const TextFieldExample(),
+      // home: const HooksExample(),
     );
   }
 }
 
-class MyHomePage extends StatelessWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+class TextFieldExample extends StatefulWidget {
+  const TextFieldExample({super.key});
+
+  @override
+  State<TextFieldExample> createState() => _TextFieldExampleState();
+}
+
+class _TextFieldExampleState extends State<TextFieldExample> {
+  final controller = DetectableTextEditingController(
+    regExp: detectionRegExp(),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    controller.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Detectable text field sample"),
+        title: const Text('DetectableTextField Example'),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              DetectableText(
-                trimLines: 1,
-                colorClickableText: Colors.pink,
-                trimMode: TrimMode.Line,
-                trimCollapsedText: 'more',
-                trimExpandedText: '...less',
-                text:
-                    "Welcome to #Detectable @TextField http://www.google.com this is sample text we are texting the feed text here. Welcome to #Detectable @TextField this is sample text we are texting the feed text here",
-                detectionRegExp: RegExp(
-                  "(?!\\n)(?:^|\\s)([#@]([$detectionContentLetters]+))|$urlRegexContent",
-                  multiLine: true,
-                ),
-                callback: (bool readMore) {
-                  debugPrint('Read more >>>>>>> $readMore');
-                },
-                onTap: (tappedText) async {
-                  print(tappedText);
-                  if (tappedText.startsWith('#')) {
-                    debugPrint('DetectableText >>>>>>> #');
-                  } else if (tappedText.startsWith('@')) {
-                    debugPrint('DetectableText >>>>>>> @');
-                  } else if (tappedText.startsWith('http')) {
-                    debugPrint('DetectableText >>>>>>> http');
-                  }
-                },
-                basicStyle: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.grey,
-                ),
-                detectedStyle: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                  color: Colors.blueAccent,
-                ),
-              ),
-              const SizedBox(height: 32),
-              DetectableTextField(
-                maxLines: null,
-                detectionRegExp: detectionRegExp()!,
-                onDetectionTyped: (text) {
-                  print(text);
-                },
-                onDetectionFinished: () {
-                  print('finished');
-                },
-              ),
-              TextField(),
-            ],
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            'Typing detection: ${controller.typingDetection}',
           ),
-        ),
+          DetectableTextField(
+            controller: controller,
+          ),
+        ],
       ),
     );
   }
